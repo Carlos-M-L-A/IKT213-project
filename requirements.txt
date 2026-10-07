@@ -2,3 +2,5 @@ torch
 torchvision
 pillow
 pathlib
+pandas
+scikit-image
