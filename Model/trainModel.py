@@ -28,7 +28,7 @@ input_size = 1024
 num_classes = 2
 batch_size = 64
 learning_rate = 0.001
-num_epochs = 5
+num_epochs = 50
 load_model = False
 
 
@@ -57,10 +57,11 @@ test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
 
 # Load MobileNetV3-Small pretrained on ImageNet
 model = models.mobilenet_v3_small(weights=models.MobileNet_V3_Small_Weights.IMAGENET1K_V1)
-model.to(device=device)
 
 # Modify the final layer for a custom number of classes (e.g., 10)
 model.classifier[3] = nn.Linear(in_features=input_size, out_features=2)
+
+model.to(device=device)
 
 
 # Loss and optimizer
@@ -122,10 +123,10 @@ def check_accuracy(loader, model):
 
     return float(num_correct)/(num_samples)*100
 
-print('Checking accuaracy on Training Set')
+print('Checking accuracy on Training Set')
 check_accuracy(train_dataloader, model)
 
-print('Checking accuaracy on Test Set')
+print('Checking accuracy on Test Set')
 accuracy = check_accuracy(test_dataloader, model)
 
 torch.save({
@@ -133,4 +134,4 @@ torch.save({
     'optimizer' : optimizer.state_dict(),
     'loss' : sum(losses)/len(losses),
     'accuracy': accuracy
-}, 'Model/model3.pht.tar')
+}, 'Model/trueModel.pht.tar')
