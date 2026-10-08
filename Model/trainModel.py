@@ -134,4 +134,4 @@ torch.save({
     'optimizer' : optimizer.state_dict(),
     'loss' : sum(losses)/len(losses),
     'accuracy': accuracy
-}, 'Model/trueModel.pht.tar')
+}, 'Model/Model.pht.tar')
