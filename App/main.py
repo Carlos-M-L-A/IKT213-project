@@ -17,14 +17,15 @@ _cwd = Path(__file__).resolve().parents[1]
 def load_model(device: torch.device):
 
     model = torchvision.models.mobilenet_v3_small(pretrained=False)
+    model.to(device)
 
-    state_dict = torch.load(_cwd/'Model'/'weigths', map_location=device)
-
-    if any(k.startswith("module.") for k in state_dict):
-        state_dict = {k.replace("module.", "", 1): v for k, v in state_dict.items()}
+    state_dict = torch.load(_cwd/'Model'/'trueModel.pht.tar', map_location=device)
 
     model.load_state_dict(state_dict)
-    class_names = None
+
+    num_classes = model.classifier[-1].out_features if hasattr(model.classifier, '__len__') else 0
+    class_names = [f"class_{i}" for i in range(num_classes)]
+
 
     return model, class_names
 
@@ -39,7 +40,7 @@ def preprocess_image(image_path: str, device: torch.device) -> torch.Tensor:
     except Exception as e:
         raise ValueError(f"Failed to open image '{image_path}': {e}")
 
-    # MobileNetV2 expects 224x224 images; use the standard ImageNet transforms
+    # MobileNetV3 expects 224x224 images; use the standard ImageNet transforms
     preprocess = transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),
