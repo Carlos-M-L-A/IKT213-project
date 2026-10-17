@@ -12,20 +12,27 @@ def get_device() -> torch.device:
     #Return the best available device (CUDA if available, else CPU).
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+_input_size = 1024
 _cwd = Path(__file__).resolve().parents[1]
 
 def load_model(device: torch.device):
 
     model = torchvision.models.mobilenet_v3_small(pretrained=False)
+    model.classifier[3] = torch.nn.Linear(in_features=_input_size, out_features=2)
     model.to(device)
 
     state_dict = torch.load(_cwd/'Model'/'trueModel.pht.tar', map_location=device)
 
-    model.load_state_dict(state_dict)
-
+    model.load_state_dict(state_dict['state_dict'], strict=False)
+    # Number of output classes (the size of the final linear layer)
     num_classes = model.classifier[-1].out_features if hasattr(model.classifier, '__len__') else 0
-    class_names = [f"class_{i}" for i in range(num_classes)]
 
+    # Define class names: index 0 -> real, index 1 -> fake (binary classification)
+    if num_classes == 2:
+        class_names = ["real", "fake"]
+    else:
+        # Fallback to generic placeholder names
+        class_names = [f"class_{i}" for i in range(num_classes)]
 
     return model, class_names
 
