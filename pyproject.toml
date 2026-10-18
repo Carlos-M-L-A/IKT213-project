@@ -1,0 +1,54 @@
+[project]
+name = "ikt213-project"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+requires-python = ">=3.14"
+authors = [
+    { name = "Carlos M. L. A.", email = "cmandersen@uia.no" }
+]
+dependencies = [
+    "flet>=1.0.4",
+    "torch",
+    "torchvision",
+    "pathlib",
+]
+
+[dependency-groups]
+dev = [
+    "flet-cli>=1.0.4",
+    "flet-desktop>=1.0.4",
+    "flet-web>=1.0.4",
+    # Integration testing with `flet test` / pytest. The `test` extra brings in
+    # pytest, pytest-asyncio and the screenshot-comparison dependencies.
+    "flet[test]>=1.0.4",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["App"]
+
+[tool.flet]
+org = "com.carlos-m-l-a"
+product = "ikt213-project"
+company = "IKT213 Group 4"
+copyright = "None"
+
+# src/assets/icon.png is the icon for every platform. Keep it transparent and
+# filling the whole canvas: web, Windows and Linux show it as-is, and Flet
+# shrinks it to the margin iOS, macOS and Android each mask away. This colour
+# is what sits behind it where transparency cannot survive - the iOS icon, the
+# macOS tile and the Android background layer. Defaults to white.
+# icon_background = "#ffffff"
+
+[tool.flet.app]
+path = "App"
+module = "window.py"
+exclude = ["main.py"]
+
+
+[tool.flet.compile]
+app = true
+packages = true
+cleanup = true
