@@ -11,11 +11,11 @@ def get_device() -> torch.device:
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 _input_size = 1024
-_cwd = Path(__file__).resolve().parents[1]
+_cwd = Path(__file__).resolve().parents[2]
 
 def load_model(device: torch.device):
 
-    model = torchvision.models.mobilenet_v3_small(pretrained=False)
+    model = torchvision.models.mobilenet_v3_small(weights=None)
     model.classifier[3] = torch.nn.Linear(in_features=_input_size, out_features=2)
     model.to(device)
 
