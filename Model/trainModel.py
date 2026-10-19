@@ -24,7 +24,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 #Parameters
-input_size = 1024
 num_classes = 2
 batch_size = 64
 learning_rate = 0.001
@@ -59,7 +58,7 @@ test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
 model = models.mobilenet_v3_small(weights=models.MobileNet_V3_Small_Weights.IMAGENET1K_V1)
 
 # Modify the final layer for a custom number of classes (e.g., 10)
-model.classifier[3] = nn.Linear(in_features=input_size, out_features=2)
+model.classifier[3] = nn.Linear(in_features=model.classifier[3].in_features, out_features=2)
 
 model.to(device=device)
 
