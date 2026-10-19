@@ -43,7 +43,7 @@ def preprocess_image(image_path: str, device: torch.device) -> torch.Tensor:
     """
     try:
         img = Image.open(image_path).convert("RGB")
-    except Exception as e:
+    except FileNotFoundError as e:
         raise ValueError(f"Failed to open image '{image_path}': {e}")
 
     # MobileNetV3 expects 224x224 images; use the standard ImageNet transforms
