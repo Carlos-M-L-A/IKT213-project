@@ -19,9 +19,10 @@ def load_model(device: torch.device):
     model.classifier[3] = torch.nn.Linear(in_features=_input_size, out_features=2)
     model.to(device)
 
-    state_dict = torch.load(_cwd/'Model'/'trueModel.pht.tar', map_location=device)
+    state_dict = torch.load(_cwd/'Model'/'trueModel.pht.tar', map_location=device, weights_only=True)
 
     model.load_state_dict(state_dict['state_dict'], strict=False)
+    model.eval()
     # Number of output classes (the size of the final linear layer)
     num_classes = model.classifier[-1].out_features if hasattr(model.classifier, '__len__') else 0
 
@@ -48,13 +49,10 @@ def preprocess_image(image_path: str, device: torch.device) -> torch.Tensor:
     # MobileNetV3 expects 224x224 images; use the standard ImageNet transforms
     preprocess = transforms.Compose([
         transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225]),
+        transforms.ToTensor()
     ])
-    img_tensor = preprocess(img).unsqueeze(0).to(device)  # add batch dimension
-    return img_tensor
+    img_tensor = preprocess(img).unsqueeze(0)  # add batch dimension
+    return img_tensor.to(device)
 
 
 def predict(model: torch.nn.Module, input_tensor: torch.Tensor) -> torch.Tensor:
