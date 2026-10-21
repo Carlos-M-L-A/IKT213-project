@@ -1,12 +1,61 @@
+import sys
+from pathlib import Path
+
 import cv2
+import numpy as np
 
-FACE_CASCADE = cv2.CascadeClassifier(
-    cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-)
+_model_yunet = 'face_detection_yunet_2023mar.onnx'
+_cwd = Path(__file__).parent
 
-def detect_faces(img):
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    faces = FACE_CASCADE.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5)
-    for (x, y, w, h) in faces:
-        cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
-    return img
+def check_base_model():
+    """Check if the base ONNX model file exists."""
+    model_path = _cwd / _model_yunet
+    if not model_path.exists():
+        print(f"Error: Model file not found: {model_path}", file=sys.stderr)
+        print(f"Downloading {_model_yunet}...")
+        import urllib.request
+        url = f"https://huggingface.co/opencv/face_detection_yunet/resolve/main/{_model_yunet}"
+        urllib.request.urlretrieve(url, model_path)
+        print("Download completed.")
+    return model_path
+
+def detect_faces(img: np.ndarray, model_yunet = _model_yunet, score=0.6, nms_threshold=0.7, scale: float = 1.0):
+    """
+    Detects faces in an image using OpenCV's YuNet DNN face detector.
+    Args:
+        img: Input image in BGR format (OpenCV default).
+        model_yunet: Path to the YuNet ONNX model file.
+        score: Minimum confidence threshold for a detection to be kept.
+        nms_threshold: Non-maximum suppression threshold (overlap allowed).
+        scale: Downscale factor for the analysed image (0-1). Useful for
+               speeding up detection on large frames.
+    Returns:
+        list[np.ndarray]: A list of cropped face images (as BGR arrays).
+                           None if no faces found.
+    """
+
+    if model_yunet == _model_yunet:
+        model_yunet = str(check_base_model())
+
+    height, width = img.shape[:2]
+
+    detector = cv2.FaceDetectorYN.create(
+        model_yunet, '', (320, 320), score, nms_threshold
+    )
+
+    small_width = round(width * scale)
+    small_height = round(height * scale)
+    if min(small_width, small_height) < 32:
+        raise RuntimeError('Scaled frames must be at least 32 by 32 pixels.')
+    img_resized = cv2.resize(img, (small_width, small_height))
+    detector.setInputSize((height, width))
+
+    _, faces = detector.detect(img_resized)
+
+    face_image_list = []
+
+    if faces is not None:
+        for (x, y, w, h) in faces:
+            face = img[int(y):int(y+h), int(x):int(x+w)]
+            face_image_list.append(face)
+    return face_image_list
