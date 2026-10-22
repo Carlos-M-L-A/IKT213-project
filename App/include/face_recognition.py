@@ -7,6 +7,15 @@ import numpy as np
 _model_yunet = 'face_detection_yunet_2023mar.onnx'
 _cwd = Path(__file__).parent
 
+# Backend and target device pairs for OpenCV DNN
+BACKEND_TARGET_PAIRS = [
+    [cv2.dnn.DNN_BACKEND_OPENCV, cv2.dnn.DNN_TARGET_CPU],
+    [cv2.dnn.DNN_BACKEND_CUDA,   cv2.dnn.DNN_TARGET_CUDA],
+    [cv2.dnn.DNN_BACKEND_CUDA,   cv2.dnn.DNN_TARGET_CUDA_FP16],
+    [cv2.dnn.DNN_BACKEND_TIMVX,  cv2.dnn.DNN_TARGET_NPU],
+    [cv2.dnn.DNN_BACKEND_CANN,   cv2.dnn.DNN_TARGET_NPU]
+]
+
 def check_base_model():
     """Check if the base ONNX model file exists."""
     model_path = _cwd / _model_yunet
@@ -21,7 +30,7 @@ def check_base_model():
         print("Download completed.")
     return model_path
 
-def detect_faces(img: np.ndarray, model_yunet = _model_yunet, score=0.6, nms_threshold=0.7, scale: float = 1.0):
+def detect_faces(img: np.ndarray, model_yunet = _model_yunet, score=0.6, nms_threshold=0.7, scale: float = 1.0, index_backend_target_pair: int = 0):
     """
     Detects faces in an image using OpenCV's YuNet DNN face detector.
     Args:
@@ -31,6 +40,7 @@ def detect_faces(img: np.ndarray, model_yunet = _model_yunet, score=0.6, nms_thr
         nms_threshold: Non-maximum suppression threshold (overlap allowed).
         scale: Downscale factor for the analysed image (0-1). Useful for
                speeding up detection on large frames.
+        index_backend_target_pair: Index of the backend/target pair to use.
     Returns:
         list[np.ndarray]: A list of cropped face images (as BGR arrays).
                            Empty list if no faces found.
@@ -41,8 +51,17 @@ def detect_faces(img: np.ndarray, model_yunet = _model_yunet, score=0.6, nms_thr
 
     height, width = img.shape[:2]
 
+    backend_id = BACKEND_TARGET_PAIRS[index_backend_target_pair][0]
+    target_id = BACKEND_TARGET_PAIRS[index_backend_target_pair][1]
+
     detector = cv2.FaceDetectorYN.create(
-        model_yunet, '', (320, 320), score, nms_threshold
+        model=model_yunet,
+        config='',
+        input_size=(320, 320),
+        score_threshold=score,
+        nms_threshold=nms_threshold,
+        backend_id=backend_id,
+        target_id=target_id
     )
 
     # Resize image for with scale factor
@@ -59,10 +78,12 @@ def detect_faces(img: np.ndarray, model_yunet = _model_yunet, score=0.6, nms_thr
     face_image_list = []
 
     if faces is not None:
-        for (x, y, w, h) in faces:
-            # Scale coordinates back to original image size
-            x, y, w, h = round(x / scale), round(y / scale), round(w / scale), round(h / scale)
+        # Scale coordinates back to original image size
+        faces[:, 0:14:2] *= scale
+        faces[:, 1:14:2] *= scale
+        for face in faces:
             # Extract face region
-            face = img[int(y):int(y+h), int(x):int(x+w)]
-            face_image_list.append(face)
+            x, y, w, h = face[:4].astype(np.int32)
+            face_image = img[int(y):int(y+h), int(x):int(x+w)]
+            face_image_list.append(face_image)
     return face_image_list

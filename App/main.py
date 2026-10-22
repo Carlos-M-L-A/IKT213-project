@@ -37,12 +37,21 @@ def main():
         sys.exit(1)
 
     probs = predict(model, input_tensor)
-    score = generate_score(probs)
-    pred_idx = probs.argmax().item()
-    pred_name = class_names[pred_idx] if class_names else f"class_{pred_idx}"
+    # Determine if we have a batch of faces
+    if probs.dim() == 1:
+        # Single face – keep existing logic
+        scores = [generate_score(probs)]
+        pred_idxs = [probs.argmax().item()]
+    else:
+        # Multiple faces – compute per‑face scores and class indices
+        scores = [generate_score(p) for p in probs]
+        pred_idxs = [p.argmax().item() for p in probs]
+    # Map indices to class names (fallback to generic names)
+    pred_names = [class_names[idx] if class_names else f"class_{idx}" for idx in pred_idxs]
 
-    print(f"Predicted class: {pred_name} (index {pred_idx})")
-    print(f"Confidence score: {score}%")
+    # Print results for each detected face (or the single face)
+    for i, (name, sc) in enumerate(zip(pred_names, scores)):
+        print(f"Face {i+1}: Predicted class: {name} (confidence {sc}%)")
 
     # Write a simple result file
     output_dir = Path(args.output)
@@ -50,9 +59,9 @@ def main():
     result_path = output_dir / f"{image_path.stem}_result.txt"
     with result_path.open("w", encoding="utf-8") as f:
         f.write(f"Image: {image_path}\n")
-        f.write(f"Predicted class: {pred_name}\n")
-        f.write(f"Class index: {pred_idx}\n")
-        f.write(f"Confidence score: {score}%\n")
+        # Write a line per face
+        for i, (name, idx, sc) in enumerate(zip(pred_names, pred_idxs, scores)):
+            f.write(f"Face {i+1}: class={name}, index={idx}, confidence={sc}%\n")
 
     print(f"Result written to {result_path}")
 

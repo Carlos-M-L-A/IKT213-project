@@ -1,8 +1,10 @@
 from pathlib import Path
 
+import cv2
+from . import face_recognition
+import numpy as np
 import torch
 import torchvision
-from PIL import Image
 from torchvision import transforms
 
 
@@ -34,24 +36,38 @@ def load_model(device: torch.device):
 
     return model, class_names
 
+def load_and_detect_faces(image_path: str) -> list[np.ndarray]:
+    """Load an image and return a list of detected face crops (RGB)."""
+    image = cv2.imread(image_path)
+    if image is None:
+        raise ValueError(f"Failed to open image '{image_path}'")
+
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    faces = face_recognition.detect_faces(image_rgb)
+    if not faces:
+        raise ValueError(f"No faces detected in image '{image_path}'")
+    return faces
+
+
+def preprocess_faces_to_tensor(faces: list[np.ndarray], device: torch.device) -> torch.Tensor:
+    """Convert face crops into a batched MobileNetV3-ready tensor."""
+    preprocess = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.Resize(256),
+        transforms.CenterCrop(244),
+        transforms.ToTensor(),
+    ])
+
+    tensors = [preprocess(face) for face in faces]
+    return torch.stack(tensors).to(device)
 
 def preprocess_image(image_path: str, device: torch.device) -> torch.Tensor:
-    """Load an image, apply the MobileNet preprocessing pipeline, and return a tensor.
+    """Load an image, detect faces and apply the MobileNet preprocessing pipeline, and return a tensor.
 
     The function raises ``ValueError`` if the image cannot be opened or is not a valid RGB image.
     """
-    try:
-        img = Image.open(image_path).convert("RGB")
-    except FileNotFoundError as e:
-        raise ValueError(f"Failed to open image '{image_path}': {e}")
-
-    # MobileNetV3 expects 224x224 images; use the standard ImageNet transforms
-    preprocess = transforms.Compose([
-        transforms.Resize(256),
-        transforms.ToTensor()
-    ])
-    img_tensor = preprocess(img).unsqueeze(0)  # add batch dimension
-    return img_tensor.to(device)
+    faces = load_and_detect_faces(image_path)
+    return preprocess_faces_to_tensor(faces, device)
 
 
 def predict(model: torch.nn.Module, input_tensor: torch.Tensor) -> torch.Tensor:
