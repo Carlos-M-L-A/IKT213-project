@@ -15,7 +15,9 @@ def check_base_model():
         print(f"Downloading {_model_yunet}...")
         import urllib.request
         url = f"https://huggingface.co/opencv/face_detection_yunet/resolve/main/{_model_yunet}"
-        urllib.request.urlretrieve(url, model_path)
+        result = urllib.request.urlretrieve(url, model_path)
+        if result[1] is not None:
+            raise RuntimeError(f"Failed to download model from {url}")
         print("Download completed.")
     return model_path
 
@@ -31,7 +33,7 @@ def detect_faces(img: np.ndarray, model_yunet = _model_yunet, score=0.6, nms_thr
                speeding up detection on large frames.
     Returns:
         list[np.ndarray]: A list of cropped face images (as BGR arrays).
-                           None if no faces found.
+                           Empty list if no faces found.
     """
 
     if model_yunet == _model_yunet:
@@ -43,12 +45,14 @@ def detect_faces(img: np.ndarray, model_yunet = _model_yunet, score=0.6, nms_thr
         model_yunet, '', (320, 320), score, nms_threshold
     )
 
+    # Resize image for with scale factor
     small_width = round(width * scale)
     small_height = round(height * scale)
     if min(small_width, small_height) < 32:
-        raise RuntimeError('Scaled frames must be at least 32 by 32 pixels.')
+        raise RuntimeError('Scaled image must be at least 32 by 32 pixels.')
+
     img_resized = cv2.resize(img, (small_width, small_height))
-    detector.setInputSize((height, width))
+    detector.setInputSize((small_width, small_height))
 
     _, faces = detector.detect(img_resized)
 
@@ -56,6 +60,9 @@ def detect_faces(img: np.ndarray, model_yunet = _model_yunet, score=0.6, nms_thr
 
     if faces is not None:
         for (x, y, w, h) in faces:
+            # Scale coordinates back to original image size
+            x, y, w, h = round(x / scale), round(y / scale), round(w / scale), round(h / scale)
+            # Extract face region
             face = img[int(y):int(y+h), int(x):int(x+w)]
             face_image_list.append(face)
     return face_image_list
