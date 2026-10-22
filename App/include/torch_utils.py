@@ -52,10 +52,10 @@ def load_and_detect_faces(image_path: str) -> list[np.ndarray]:
 def preprocess_faces_to_tensor(faces: list[np.ndarray], device: torch.device) -> torch.Tensor:
     """Convert face crops into a batched MobileNetV3-ready tensor."""
     preprocess = transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.Resize(256),
-        transforms.CenterCrop(244),
-        transforms.ToTensor(),
+        transforms.ToPILImage(),  #faces return as ndarray and must be converted
+        transforms.Resize(256),   #Resize for efficient processing
+        transforms.CenterCrop(244),  #Center crop to guarantee that all images are the correct dimensions
+        transforms.ToTensor(),  #Converts PILImage to Tensor
     ])
 
     tensors = [preprocess(face) for face in faces]
