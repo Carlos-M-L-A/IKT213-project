@@ -11,6 +11,8 @@ dependencies = [
     "flet>=1.0.4",
     "torch >= 2.14.1", #Unusable on web
     "torchvision >= 0.29", #Unusable on web
+    "opencv-python",
+    "pillow"
 ]
 
 [dependency-groups]
@@ -43,6 +45,7 @@ company = "IKT213 Group 4"
 [tool.flet.app]
 path = "App"
 module = "window.py"
+include = ["../Model/trueModel.pht.tar", "include/face_detection_yunet_2023mar.onnx"]
 exclude = ["main.py"]
 
 [tool.flet.compile]

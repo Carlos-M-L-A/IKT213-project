@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import cv2
+import sys
 from . import face_recognition
 import numpy as np
 import torch
@@ -12,7 +13,11 @@ def get_device() -> torch.device:
     #Return the best available device (CUDA if available, else CPU).
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-_cwd = Path(__file__).resolve().parents[2]
+def resource_path(relative: str) -> Path:
+    # In a frozen app, bundled data lives in sys._MEIPASS.
+    # In dev, fall back to the project root (parents[1]).
+    base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
+    return base / relative
 
 def load_model(device: torch.device):
 
@@ -20,7 +25,7 @@ def load_model(device: torch.device):
     model.classifier[3] = torch.nn.Linear(in_features=model.classifier[3].in_features, out_features=2)
     model.to(device)
 
-    state_dict = torch.load(_cwd/'Model'/'trueModel.pht.tar', map_location=device, weights_only=True)
+    state_dict = torch.load(resource_path('Model/trueModel.pht.tar'), map_location=device, weights_only=True)
 
     model.load_state_dict(state_dict['state_dict'], strict=False)
     model.eval()

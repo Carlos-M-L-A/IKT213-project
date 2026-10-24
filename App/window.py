@@ -54,7 +54,6 @@ def main(page: ft.Page):
         color=ft.Colors.WHITE,
         text_align=ft.TextAlign.CENTER,
     )
-    file_picker = ft.FilePicker()
 
     def show_image(source, faces_bytes=None, label_text=""):
         # Original image with optional red overlay and label
@@ -109,17 +108,11 @@ def main(page: ft.Page):
         # Update the row container that holds both columns
         image_row.controls = [original, face_column]
 
-    async def choose_image():
-        files = await file_picker.pick_files(
-            dialog_title="Select an image",
-            file_type=ft.FilePickerFileType.IMAGE,
-            allow_multiple=False,
-            with_data=True,
-        )
-        if not files:
+    def choose_image(e: ft.FilePickerResultEvent):
+        if not e.files:
             return
 
-        selected = files[0]
+        selected = e.files[0]
         _state.picked_file_path = selected.path
         image_source = selected.bytes if selected.bytes is not None else selected.path
         if image_source is None:
@@ -168,10 +161,19 @@ def main(page: ft.Page):
         result_text.value = f"Predicted: {classification_label}"
         page.update()
 
+    file_picker = ft.FilePicker(on_result=choose_image)
+    page.services.append(file_picker)
+
     upload_btn = ft.Button(
         content="Select image",
         icon=ft.Icons.FOLDER_OPEN,
-        on_click=choose_image,
+        action=ft.PickFiles(
+            file_picker,
+            dialog_title="Select an image",
+            file_type=ft.FilePickerFileType.IMAGE,
+            allow_multiple=False,
+            with_data=True,
+        ),
     )
 
     page.add(
@@ -187,10 +189,12 @@ def main(page: ft.Page):
                 tight=True,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=20,
-                controls=[upload_btn, image_row, result_text],
+                controls=[
+                    upload_btn,
+                    image_row,
+                    result_text],
             ),
         )
     )
-
 
 ft.run(main)
