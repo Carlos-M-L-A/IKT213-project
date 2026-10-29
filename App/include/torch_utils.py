@@ -42,11 +42,15 @@ def load_and_detect_faces(image_path: str) -> list[np.ndarray]:
     if image is None:
         raise ValueError(f"Failed to open image '{image_path}'")
 
-    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    faces = face_recognition.detect_faces(image_rgb)
-    if not faces:
-        raise ValueError(f"No faces detected in image '{image_path}'")
-    return faces
+    faces_bgr = face_recognition.detect_faces(image)
+
+    if not faces_bgr:
+        raise ValueError(f"No faces detected in '{image_path}'")
+
+    return [
+        cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
+        for face in faces_bgr
+    ]
 
 
 def preprocess_faces_to_tensor(faces: list[np.ndarray], device: torch.device) -> torch.Tensor:
@@ -58,7 +62,27 @@ def preprocess_faces_to_tensor(faces: list[np.ndarray], device: torch.device) ->
         transforms.ToTensor(),  #Converts PILImage to Tensor
     ])
 
-    tensors = [preprocess(face) for face in faces]
+    tensors = []
+
+    for i, face in enumerate(faces):
+
+        # Check if face has valid dimensions
+        if (
+            face is None
+            or face.ndim != 3
+            or face.shape[0] == 0
+            or face.shape[1] == 0
+            or face.shape[2] != 3
+        ):
+            print(f"WARNING: Invalid face crop at index {i}")
+            continue
+
+        tensor = preprocess(face)
+        tensors.append(tensor)
+
+    if not tensors:
+        raise ValueError("No valid face crops found")
+
     return torch.stack(tensors).to(device)
 
 def preprocess_image(image_path: str, device: torch.device) -> torch.Tensor:

@@ -4,6 +4,32 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from functools import lru_cache
+
+@lru_cache(maxsize=8)
+def get_detector(
+    model_path: str,
+    score: float = 0.6,
+    nms_threshold: float = 0.7,
+    index_backend_target_pair: int = 0
+):
+    backend_id, target_id = BACKEND_TARGET_PAIRS[
+        index_backend_target_pair
+    ]
+
+    detector = cv2.FaceDetectorYN.create(
+        model=model_path,
+        config="",
+        input_size=(320, 320),
+        score_threshold=score,
+        nms_threshold=nms_threshold,
+        backend_id=backend_id,
+        target_id=target_id
+    )
+
+    return detector
+
+
 _model_yunet = 'face_detection_yunet_2023mar.onnx'
 _cwd = Path(__file__).parent
 
@@ -51,24 +77,24 @@ def detect_faces(img: np.ndarray, model_yunet = _model_yunet, score=0.6, nms_thr
 
     height, width = img.shape[:2]
 
-    backend_id = BACKEND_TARGET_PAIRS[index_backend_target_pair][0]
-    target_id = BACKEND_TARGET_PAIRS[index_backend_target_pair][1]
-
-    detector = cv2.FaceDetectorYN.create(
-        model=model_yunet,
-        config='',
-        input_size=(320, 320),
-        score_threshold=score,
-        nms_threshold=nms_threshold,
-        backend_id=backend_id,
-        target_id=target_id
-    )
+    if scale <= 0 or scale > 1:
+        raise ValueError("scale must be between 0 and 1")
 
     # Resize image for with scale factor
     small_width = round(width * scale)
     small_height = round(height * scale)
+
     if min(small_width, small_height) < 32:
         raise RuntimeError('Scaled image must be at least 32 by 32 pixels.')
+
+    # Reuse existing detector
+    detector = get_detector(
+        str(model_yunet),
+        score,
+        nms_threshold,
+        index_backend_target_pair
+    )
+
 
     img_resized = cv2.resize(img, (small_width, small_height))
     detector.setInputSize((small_width, small_height))
@@ -77,13 +103,37 @@ def detect_faces(img: np.ndarray, model_yunet = _model_yunet, score=0.6, nms_thr
 
     face_image_list = []
 
-    if faces is not None:
-        # Scale coordinates back to original image size
-        faces[:, 0:14:2] *= scale
-        faces[:, 1:14:2] *= scale
-        for face in faces:
-            # Extract face region
-            x, y, w, h = face[:4].astype(np.int32)
-            face_image = img[int(y):int(y+h), int(x):int(x+w)]
-            face_image_list.append(face_image)
+    if faces is None:
+        return face_image_list
+    
+    # Convert coordinates
+    for face in faces:
+
+        x, y, w, h = face[:4] / scale
+
+        #bounding box corners
+        x1 = int(np.floor(x))
+        y1 = int(np.floor(y))
+        x2 = int(np.ceil(x + w))
+        y2 = int(np.ceil(y + h))
+
+        #Clamp coordinates to image boundaries
+        x1 = max(0, min(x1, width))
+        y1 = max(0, min(y1, height))
+        x2 = max(0, min(x2, width))
+        y2 = max(0, min(y2, height))
+
+        #Skip invalid bounding boxes
+        if x2 <= x1 or y2 <= y1:
+            continue
+
+        #Crop face
+        face_image = img[y1:y2, x1:x2]
+
+        #check crop is valid
+        if face_image.size == 0:
+            continue
+
+        face_image_list.append(face_image)
+
     return face_image_list
