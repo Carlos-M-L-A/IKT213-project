@@ -8,6 +8,8 @@ from customDataset import ImageDataset
 from pathlib import Path
 
 
+
+
 def save_checkpoint(state, filename='Model/training_checkpoint.pht.tar'):
     print('=> Saving checkpoint')
     torch.save(state, filename)
@@ -27,31 +29,28 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 num_classes = 2
 batch_size = 64
 learning_rate = 0.001
-num_epochs = 50
+num_epochs = 2
 load_model = False
 
 
 #Load Data
 current_folder = Path(__file__).resolve().parent.parent
 
-training_data = ImageDataset(csv_file=current_folder / 'Images/training.csv', 
+training_data = ImageDataset(csv_file=current_folder / 'Images/train_faces.csv', 
                             img_dir=current_folder / 'Images',
-                            transform= transforms.ToTensor()
                             )
 
-validation_data = ImageDataset(csv_file=current_folder / 'Images/validate.csv', 
+validation_data = ImageDataset(csv_file=current_folder / 'Images/validation_faces.csv', 
                             img_dir=current_folder / 'Images',
-                            transform= transforms.ToTensor()
                             )
 
-test_data = ImageDataset(csv_file=current_folder / 'Images/test.csv', 
+test_data = ImageDataset(csv_file=current_folder / 'Images/test_faces.csv', 
                             img_dir=current_folder / 'Images',
-                            transform= transforms.ToTensor()
                             )
 
-train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=False)
-validation_dataloader = DataLoader(validation_data, batch_size=batch_size, shuffle=False)
-test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
+train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=(device.type == "cuda"))
+validation_dataloader = DataLoader(validation_data, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=(device.type == "cuda"))
+test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=(device.type == "cuda"))
 
 
 # Load MobileNetV3-Small pretrained on ImageNet
@@ -108,8 +107,8 @@ def check_accuracy(loader, model):
 
     with torch.no_grad():
         for x, y in loader:
-            x = x.to(device=device)
-            y = y.to(device=device)
+            x = x.to(device=device, non_blocking=True)
+            y = y.to(device=device, non_blocking=True)
 
             scores = model(x)
             _, predictions = scores.max(1)
