@@ -14,12 +14,13 @@ try:
         predict,
         preprocess_image,
         load_and_detect_faces,
-        preprocess_faces_to_tensor
+        preprocess_faces_to_tensor,
+        predict_image
     )
 
     INFERENCE_IMPORT_ERROR = None
 except RuntimeError as exc:
-    generate_score = get_device = load_model = predict = preprocess_image = load_and_detect_faces = preprocess_faces_to_tensor = None
+    generate_score = get_device = load_model = predict = preprocess_image = load_and_detect_faces = preprocess_faces_to_tensor = predict_image = None
     INFERENCE_IMPORT_ERROR = exc
 
 @dataclass
@@ -136,35 +137,59 @@ def main(page: ft.Page):
             page.update()
             return
 
-        # --- Classification -------------------------------------------------
+        # --- Detect faces and classify entire image ---
+        face_bytes = []
+
         try:
-            input_tensor = preprocess_image(str(selected.path), device)
-            probs = predict(model, input_tensor)
-            score = generate_score(probs)
-            pred_idx = probs.argmax().item()
-            pred_name = class_names[pred_idx] if class_names else f"class_{pred_idx}"
-            classification_label = f"{pred_name} ({score}%)"
+            # Detect all faces once
+            faces = load_and_detect_faces(str(selected.path))
+
+            # Preprocess all faces
+            input_tensor = preprocess_faces_to_tensor(
+                faces,
+                device
+            )
+
+            # One prediction for the entire image
+            prediction, confidence = predict_image(
+                model,
+                input_tensor
+            )
+
+            classification_label = (
+                f"{prediction.upper()} ({confidence:.2f}%)"
+            )
+
+            # Display detected faces
+            for face in faces:
+                face_bgr = cv2.cvtColor(
+                    face,
+                    cv2.COLOR_RGB2BGR
+                )
+
+                success, buffer = cv2.imencode(
+                    ".png", face_bgr
+                )
+
+                if success:
+                    b64 = base64.b64encode(
+                        buffer.tobytes()
+                    ).decode()
+
+                    face_bytes.append(
+                        f"data:image/png;base64,{b64}"
+                    )
+
         except Exception as exc:
             classification_label = f"Inference error: {exc}"
 
-        # --- Face detection ------------------------------------------------
-        face_bytes = []
-        try:
-            # Load faces as numpy arrays (RGB) using the helper from torch_utils
-            faces = load_and_detect_faces(str(selected.path))
-            for face in faces:
-                # Convert RGB numpy array to BGR for OpenCV encoding
-                face_bgr = cv2.cvtColor(face, cv2.COLOR_RGB2BGR)
-                success, buffer = cv2.imencode('.png', face_bgr)
-                if success:
-                    b64 = base64.b64encode(buffer.tobytes()).decode()
-                    face_bytes.append(f"data:image/png;base64,{b64}")
-        except Exception as exc:
-            # If face detection fails we just keep face_bytes empty and will show a placeholder.
-            classification_label = f"{classification_label} – Face detection error: {exc}"
+        # Update UI
+        show_image(
+            image_source,
+            faces_bytes=face_bytes,
+            label_text=classification_label
+        )
 
-        # Update UI with original image, detection results and classification label
-        show_image(image_source, faces_bytes=face_bytes, label_text=classification_label)
         result_text.value = f"Predicted: {classification_label}"
         page.update()
 

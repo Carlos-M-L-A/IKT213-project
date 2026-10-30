@@ -8,8 +8,6 @@ from customDataset import ImageDataset
 from pathlib import Path
 
 
-
-
 def save_checkpoint(state, filename='Model/training_checkpoint.pht.tar'):
     print('=> Saving checkpoint')
     torch.save(state, filename)
@@ -29,7 +27,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 num_classes = 2
 batch_size = 64
 learning_rate = 0.001
-num_epochs = 2
+num_epochs = 40
 load_model = False
 
 
@@ -132,4 +130,44 @@ torch.save({
     'optimizer' : optimizer.state_dict(),
     'loss' : sum(losses)/len(losses),
     'accuracy': accuracy
-}, 'Model/Model.pht.tar')
+}, 'Model/trueModel.pht.tar')
+
+
+
+
+
+def evaluate_per_class(loader, model, device):
+    model.eval()
+
+    confusion = torch.zeros(
+        (2, 2),
+        dtype=torch.int64
+    )
+
+    with torch.inference_mode():
+        for images, labels in loader:
+            images = images.to(device)
+            labels = labels.to(device)
+
+            outputs = model(images)
+            predictions = outputs.argmax(dim=1)
+
+            for actual, predicted in zip(labels, predictions):
+                confusion[
+                    actual.item(),
+                    predicted.item()
+                ] += 1
+
+    print("\nConfusion matrix:")
+    print(confusion)
+
+    for class_idx, name in enumerate(["real", "fake"]):
+        total = confusion[class_idx].sum().item()
+        correct = confusion[class_idx, class_idx].item()
+
+        accuracy = 100 * correct / total if total else 0
+
+        print(f"{name} accuracy: {accuracy:.2f}%")
+
+    model.train()
+

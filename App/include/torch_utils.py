@@ -22,7 +22,8 @@ def load_model(device: torch.device):
 
     state_dict = torch.load(_cwd/'Model'/'trueModel.pht.tar', map_location=device, weights_only=True)
 
-    model.load_state_dict(state_dict['state_dict'], strict=False)
+    model.load_state_dict(state_dict['state_dict'], strict=True)
+    model.to(device)
     model.eval()
     # Number of output classes (the size of the final linear layer)
     num_classes = model.classifier[-1].out_features if hasattr(model.classifier, '__len__') else 0
@@ -60,6 +61,10 @@ def preprocess_faces_to_tensor(faces: list[np.ndarray], device: torch.device) ->
         transforms.Resize(256),   #Resize for efficient processing
         transforms.CenterCrop(244),  #Center crop to guarantee that all images are the correct dimensions
         transforms.ToTensor(),  #Converts PILImage to Tensor
+        transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]
+        )
     ])
 
     tensors = []
@@ -95,14 +100,36 @@ def preprocess_image(image_path: str, device: torch.device) -> torch.Tensor:
 
 
 def predict(model: torch.nn.Module, input_tensor: torch.Tensor) -> torch.Tensor:
-    #Run a forward pass and return the softmax probabilities.
-    with torch.no_grad():
-        logits = model(input_tensor)
-        probs = torch.nn.functional.softmax(logits, dim=1)
-    return probs.squeeze(0)  # shape: (num_classes,)
+    model.eval()
+
+    with torch.inference_mode():
+            logits = model(input_tensor)
+            probs = torch.softmax(logits, dim=1)
+
+    return probs
+
 
 
 def generate_score(prob: torch.Tensor) -> float:
     #Convert the highest probability into a 0‑100 score.
     max_conf = prob.max().item()
     return round(max_conf * 100, 2)
+
+def predict_image(model: torch.nn.Module, input_tensor: torch.Tensor) -> tuple[str, float]:
+    # Output shape: [number_of_faces, 2]
+    probs = predict(model, input_tensor)
+
+    # Column 1 represents fake
+    fake_probs = probs[:, 1]
+
+    max_fake_prob = fake_probs.max().item()
+
+    if max_fake_prob >= 0.5:
+        prediction = "fake"
+        confidence = max_fake_prob * 100
+    else:
+        prediction = "real"
+        confidence = (1 - max_fake_prob) * 100
+
+    return prediction, round(confidence, 2)
+
