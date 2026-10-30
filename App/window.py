@@ -1,21 +1,20 @@
+import base64
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import flet as ft
-
 import cv2
-import base64
+import flet as ft
 
 try:
     from include.torch_utils import (
         generate_score,
         get_device,
+        load_and_detect_faces,
         load_model,
         predict,
-        preprocess_image,
-        load_and_detect_faces,
+        predict_image,
         preprocess_faces_to_tensor,
-        predict_image
+        preprocess_image,
     )
 
     INFERENCE_IMPORT_ERROR = None

@@ -1,11 +1,12 @@
 from pathlib import Path
 
 import cv2
-from . import face_recognition
 import numpy as np
 import torch
 import torchvision
 from torchvision import transforms
+
+from . import face_recognition
 
 
 def get_device() -> torch.device:
@@ -132,4 +133,3 @@ def predict_image(model: torch.nn.Module, input_tensor: torch.Tensor) -> tuple[s
         confidence = (1 - max_fake_prob) * 100
 
     return prediction, round(confidence, 2)
-

@@ -1,10 +1,10 @@
 import sys
+from functools import lru_cache
 from pathlib import Path
 
 import cv2
 import numpy as np
 
-from functools import lru_cache
 
 @lru_cache(maxsize=8)
 def get_detector(
@@ -56,7 +56,7 @@ def check_base_model():
         print("Download completed.")
     return model_path
 
-def detect_faces(img: np.ndarray, model_yunet = _model_yunet, score=0.6, nms_threshold=0.7, scale: float = 1.0, index_backend_target_pair: int = 0):
+def detect_faces(img: np.ndarray, model_yunet = _model_yunet, score=0.6, nms_threshold=0.3, scale: float = 1.0, index_backend_target_pair: int = 0):
     """
     Detects faces in an image using OpenCV's YuNet DNN face detector.
     Args:
@@ -105,7 +105,7 @@ def detect_faces(img: np.ndarray, model_yunet = _model_yunet, score=0.6, nms_thr
 
     if faces is None:
         return face_image_list
-    
+
     # Convert coordinates
     for face in faces:
 
