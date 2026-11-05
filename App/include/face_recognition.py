@@ -10,7 +10,7 @@ import numpy as np
 def get_detector(
     model_path: str,
     score: float = 0.6,
-    nms_threshold: float = 0.7,
+    nms_threshold: float = 0.3,
     index_backend_target_pair: int = 0
 ):
     backend_id, target_id = BACKEND_TARGET_PAIRS[
