@@ -1,0 +1,10 @@
+image,label
+processed_faces/test/face_0000000.jpg,0
+processed_faces/test/face_0000001.jpg,1
+processed_faces/test/face_0000002.jpg,0
+processed_faces/test/face_0000003.jpg,1
+processed_faces/test/face_0000004.jpg,1
+processed_faces/test/face_0000005.jpg,0
+processed_faces/test/face_0000006.jpg,1
+processed_faces/test/face_0000007.jpg,0
+processed_faces/test/face_0000008.jpg,1

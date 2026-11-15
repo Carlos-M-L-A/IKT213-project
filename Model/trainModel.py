@@ -119,55 +119,19 @@ def check_accuracy(loader, model):
 
     return float(num_correct)/(num_samples)*100
 
-print('Checking accuracy on Training Set')
-check_accuracy(train_dataloader, model)
+print('Checking accuracy on Validation Set')
+check_accuracy(validation_dataloader, model)
 
 print('Checking accuracy on Test Set')
 accuracy = check_accuracy(test_dataloader, model)
 
-torch.save({
+#The model we use is called trueModel i have changed this to "testModel" so you do not rewrite the saved model we have trained when you are testing
+torch.save({ 
     'state_dict': model.state_dict(),
     'optimizer' : optimizer.state_dict(),
     'loss' : sum(losses)/len(losses),
     'accuracy': accuracy
-}, 'Model/trueModel.pht.tar')
+}, 'Model/testModel.pht.tar')
 
 
-
-
-
-def evaluate_per_class(loader, model, device):
-    model.eval()
-
-    confusion = torch.zeros(
-        (2, 2),
-        dtype=torch.int64
-    )
-
-    with torch.inference_mode():
-        for images, labels in loader:
-            images = images.to(device)
-            labels = labels.to(device)
-
-            outputs = model(images)
-            predictions = outputs.argmax(dim=1)
-
-            for actual, predicted in zip(labels, predictions):
-                confusion[
-                    actual.item(),
-                    predicted.item()
-                ] += 1
-
-    print("\nConfusion matrix:")
-    print(confusion)
-
-    for class_idx, name in enumerate(["real", "fake"]):
-        total = confusion[class_idx].sum().item()
-        correct = confusion[class_idx, class_idx].item()
-
-        accuracy = 100 * correct / total if total else 0
-
-        print(f"{name} accuracy: {accuracy:.2f}%")
-
-    model.train()
 

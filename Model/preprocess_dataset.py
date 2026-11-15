@@ -18,9 +18,9 @@ OUTPUT = IMAGES / "processed_faces"
 
 # Adjust source CSV names if necessary
 DATASETS = {
-    "train": "training.csv",
-    "validation": "validate.csv",
-    "test": "test.csv",
+    "train": "Unprocessed_csvs/training.csv",
+    "validation": "Unprocessed_csvs/validate.csv",
+    "test": "Unprocessed_csvs/test.csv",
 }
 
 
