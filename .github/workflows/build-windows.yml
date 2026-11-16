@@ -45,16 +45,6 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install flet-cli flet-desktop
 
-      - name: Patch Flet win_utils.py (Windows-only binary-mode encoding bug)
-        if: runner.os == 'Windows'
-        # Upstream bug: `open(exe_path, "ab", encoding="utf-8")` raises
-        # "binary mode doesn't take an encoding argument" on every Windows
-        # build. This removes the invalid encoding argument. The bug is
-        # present in Flet 1.1.2 and on `main` as of this workflow.
-        shell: pwsh
-        run: |
-          python -c "from pathlib import Path; from flet_cli import __file__ as f; p=Path(f).parent/'__pyinstaller/win_utils.py'; s=p.read_text(); s=s.replace('\"ab\", encoding=\"utf-8\"','\"ab\"'); p.write_text(s)"
-
       - name: Package with flet pack
         run: |
           flet pack App/window.py ${{ matrix.onedir_flag }} -y --add-binary "App/include/face_detection_yunet_2023mar.onnx:Include" --add-binary "Model/trueModel.pht.tar:Model" -- --clean --collect-all torch --collect-all torchvision --collect-all cv2
