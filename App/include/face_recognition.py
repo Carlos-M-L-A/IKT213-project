@@ -29,9 +29,15 @@ def get_detector(
 
     return detector
 
+def _bundle_root() -> Path:
+    # Packaged app: resources live under sys._MEIPASS.
+    # Source: resolve relative to this module's directory (App/include).
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS)
+    return Path(__file__).resolve().parents[2]
 
 _model_yunet = 'face_detection_yunet_2023mar.onnx'
-_cwd = Path(__file__).parent
+_cwd = _bundle_root()
 
 # Backend and target device pairs for OpenCV DNN
 BACKEND_TARGET_PAIRS = [
@@ -44,7 +50,7 @@ BACKEND_TARGET_PAIRS = [
 
 def check_base_model():
     """Check if the base ONNX model file exists."""
-    model_path = _cwd / _model_yunet
+    model_path = _cwd / "App/include"/ _model_yunet
     if not model_path.exists():
         print(f"Error: Model file not found: {model_path}", file=sys.stderr)
         print(f"Downloading {_model_yunet}...")

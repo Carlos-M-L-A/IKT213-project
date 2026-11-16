@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 import cv2
@@ -13,7 +14,14 @@ def get_device() -> torch.device:
     #Return the best available device (CUDA if available, else CPU).
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-_cwd = Path(__file__).resolve().parents[2]
+def _bundle_root() -> Path:
+    # Packaged app: resources live under sys._MEIPASS.
+    # Source: resolve relative to the project root.
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS)
+    return Path(__file__).resolve().parents[2]
+
+_cwd = _bundle_root()
 
 def load_model(device: torch.device):
 
