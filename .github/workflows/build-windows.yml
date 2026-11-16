@@ -47,7 +47,7 @@ jobs:
 
       - name: Package with flet pack
         run: |
-          flet pack App/window.py ${{ matrix.onedir_flag }} -y --add-binary "App/include/face_detection_yunet_2023mar.onnx:Include" --add-binary "Model/trueModel.pht.tar:Model" -- --clean --collect-all torch --collect-all torchvision --collect-all cv2
+          flet pack App/window.py ${{ matrix.onedir_flag }} -y --add-binary "App/include/face_detection_yunet_2023mar.onnx:App/include" --add-binary "Model/trueModel.pht.tar:Model" -- --clean --collect-all torch --collect-all torchvision --collect-all cv2
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
