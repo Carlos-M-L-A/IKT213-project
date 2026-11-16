@@ -20,15 +20,12 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            shell: pwsh
             onedir_flag: -D
             artifact_name: windows-app
           - os: ubuntu-latest
-            shell: bash
             onedir_flag: -D
             artifact_name: linux-app
           - os: macos-latest
-            shell: bash
             onedir_flag: ""   # flet pack does not support onedir on macOS
             artifact_name: macos-app
 
@@ -43,7 +40,6 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        shell: ${{ matrix.shell }}
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
@@ -60,7 +56,6 @@ jobs:
           python -c "from pathlib import Path; from flet_cli import __file__ as f; p=Path(f).parent/'__pyinstaller/win_utils.py'; s=p.read_text(); s=s.replace('\"ab\", encoding=\"utf-8\"','\"ab\"'); p.write_text(s)"
 
       - name: Package with flet pack
-        shell: ${{ matrix.shell }}
         run: |
           flet pack App/window.py ${{ matrix.onedir_flag }} -y --add-binary "App/include/face_detection_yunet_2023mar.onnx:Include" --add-binary "Model/trueModel.pht.tar:Model" -- --clean --collect-all torch --collect-all torchvision --collect-all cv2
 
