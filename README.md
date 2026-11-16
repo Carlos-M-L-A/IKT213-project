@@ -35,6 +35,25 @@ flowchart LR
 
 ## The app
 
+### Setup
+
+```bash
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# macOS / Linux
+source .venv/bin/activate
+
+python -m pip install -r requirements.txt
+```
+
+### Build (Flet)
+
+This step is not required, it only decreases startup times.
+```bash
+flet build windows -v
+```
+
 ### CLI (`App/main.py`)
 
 Runs inference on a single image, prints per-face results, and writes a result file.
@@ -95,26 +114,6 @@ flet run App/window.py
 - `predict(model, input_tensor)` — evaluative forward pass returning softmax probabilities.
 - `generate_score(prob)` — converts max probability to a 0–100 score.
 - `predict_image(model, input_tensor)` — aggregate whole-image prediction based on max fake-probability across all faces.
-
-## Development
-
-### Setup
-
-```bash
-python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# macOS / Linux
-source .venv/bin/activate
-
-python -m pip install -r requirements.txt
-```
-
-### Build (Flet)
-
-```bash
-flet build windows -v
-```
 
 See the [Flet docs](https://flet.dev/docs/) for other platforms (web, macOS, Linux, Android, iOS).
 
